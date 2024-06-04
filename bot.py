@@ -8,6 +8,8 @@ from util.drive import steer_toward_target
 from util.sequence import Sequence, ControlStep
 from util.vec import Vec3
 
+from kickoff import handle_kickoff
+
 from math import sin,cos
 
 class MyBot(BaseAgent):
@@ -27,6 +29,8 @@ class MyBot(BaseAgent):
         see the motion of the ball, etc. and return controls to drive your car.
         """
 
+        controls = SimpleControllerState()
+
         # Keep our boost pad info updated with which pads are currently active
         self.boost_pad_tracker.update_boost_status(packet)
 
@@ -43,6 +47,7 @@ class MyBot(BaseAgent):
         car_velocity = Vec3(my_car.physics.velocity)
         car_rotation = Vec3(my_car.physics.rotation.pitch, my_car.physics.rotation.yaw, my_car.physics.rotation.roll)
         ball_location = Vec3(packet.game_ball.physics.location)
+        self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"Dist to Ball: {Vec3.dist(car_location, ball_location):.0f}", self.renderer.white())
 
         # By default we will chase the ball, but target_location can be changed later
         target_location = ball_location
@@ -66,36 +71,18 @@ class MyBot(BaseAgent):
         car_yaw_vector = Vec3(cos(car_rotation[1]), sin(car_rotation[1]),0)
         ball_behind = Vec3.dot(car_yaw_vector, target_location-car_location)<0
 
-        if 750 < car_velocity.length() < 800 and not ball_behind:
-            # We'll do a front flip if the car is moving at a certain speed.
-            return self.begin_front_flip(packet)
+        if packet.game_info.is_kickoff_pause:
+            handle_kickoff(self, packet, controls)
+            return controls
 
         
         #self.renderer.draw_line_3d(car_location, car_location+300*car_yaw_vector, self.renderer.green())
         #self.renderer.draw_rect_3d(Vec3(0,0,0), 50, 50, True, self.renderer.red(), centered=True)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"({car_yaw_vector[0]:.3f},{car_yaw_vector[1]:.3f})", self.renderer.white())
 
-        controls = SimpleControllerState()
         controls.steer = steer_toward_target(my_car, target_location)
-        self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
+        #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
         controls.throttle = -1.0 if ball_behind else 1.0
         # You can set more controls if you want, like controls.boost.
 
         return controls
-
-
-    def begin_front_flip(self, packet):
-        # Send some quickchat just for fun
-        self.send_quick_chat(team_only=False, quick_chat=QuickChatSelection.Information_IGotIt)
-
-        # Do a front flip. We will be committed to this for a few seconds and the bot will ignore other
-        # logic during that time because we are setting the active_sequence.
-        self.active_sequence = Sequence([
-            ControlStep(duration=0.05, controls=SimpleControllerState(jump=True)),
-            ControlStep(duration=0.05, controls=SimpleControllerState(jump=False)),
-            ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=-1)),
-            ControlStep(duration=0.8, controls=SimpleControllerState()),
-        ])
-
-        # Return the controls associated with the beginning of the sequence so we can start right away.
-        return self.active_sequence.tick(packet)
