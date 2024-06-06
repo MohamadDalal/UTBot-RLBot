@@ -7,8 +7,10 @@ from util.boost_pad_tracker import BoostPadTracker
 from util.drive import steer_toward_target
 from util.sequence import Sequence, ControlStep
 from util.vec import Vec3
+from util.orientation import Orientation
 
 from kickoff import handle_kickoff
+from targeting import chaseGoal
 
 from math import sin,cos
 
@@ -21,14 +23,14 @@ class MyBot(BaseAgent):
 
     def initialize_agent(self):
         # Set up information about the boost pads now that the game is active and the info is available
-        self.boost_pad_tracker.initialize_boosts(self.get_field_info())
+        self.field_info = self.get_field_info()
+        self.boost_pad_tracker.initialize_boosts(self.field_info)
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         """
         This function will be called by the framework many times per second. This is where you can
         see the motion of the ball, etc. and return controls to drive your car.
         """
-
         controls = SimpleControllerState()
 
         # Keep our boost pad info updated with which pads are currently active
@@ -47,7 +49,7 @@ class MyBot(BaseAgent):
         car_velocity = Vec3(my_car.physics.velocity)
         car_rotation = Vec3(my_car.physics.rotation.pitch, my_car.physics.rotation.yaw, my_car.physics.rotation.roll)
         ball_location = Vec3(packet.game_ball.physics.location)
-        self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"Dist to Ball: {Vec3.dist(car_location, ball_location):.0f}", self.renderer.white())
+        #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"Dist to Ball: {Vec3.dist(car_location, ball_location):.0f}", self.renderer.white())
 
         # By default we will chase the ball, but target_location can be changed later
         target_location = ball_location
@@ -80,9 +82,14 @@ class MyBot(BaseAgent):
         #self.renderer.draw_rect_3d(Vec3(0,0,0), 50, 50, True, self.renderer.red(), centered=True)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"({car_yaw_vector[0]:.3f},{car_yaw_vector[1]:.3f})", self.renderer.white())
 
-        controls.steer = steer_toward_target(my_car, target_location)
+        #controls.steer = steer_toward_target(my_car, target_location)
+        #controls.steer = chaseGoal(self, packet, self.field_info)
+        chaseGoal(self, packet, self.field_info, controls)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
-        controls.throttle = -1.0 if ball_behind else 1.0
+        #controls.throttle = -1.0 if ball_behind else 1.0
+        controls.throttle = 1
         # You can set more controls if you want, like controls.boost.
+
+        #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"index: {self.index}", self.renderer.white())
 
         return controls

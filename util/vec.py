@@ -106,4 +106,5 @@ class Vec3:
     def ang_to(self, ideal: 'Vec3') -> float:
         """Returns the angle to the ideal vector. Angle will be between 0 and pi."""
         cos_ang = self.dot(ideal) / (self.length() * ideal.length())
+        cos_ang = round(cos_ang, 10)
         return math.acos(cos_ang)
