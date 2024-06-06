@@ -7,7 +7,7 @@ from util.boost_pad_tracker import BoostPadTracker
 from util.drive import steer_toward_target
 from util.sequence import Sequence, ControlStep
 from util.vec import Vec3
-from util.orientation import Orientation
+from util.orientation import Orientation, relative_location
 
 from kickoff import handle_kickoff
 from targeting import chaseGoal
@@ -49,6 +49,7 @@ class MyBot(BaseAgent):
         car_velocity = Vec3(my_car.physics.velocity)
         car_rotation = Vec3(my_car.physics.rotation.pitch, my_car.physics.rotation.yaw, my_car.physics.rotation.roll)
         ball_location = Vec3(packet.game_ball.physics.location)
+        car_oriantation = Orientation(my_car.physics.rotation)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"Dist to Ball: {Vec3.dist(car_location, ball_location):.0f}", self.renderer.white())
 
         # By default we will chase the ball, but target_location can be changed later
@@ -87,9 +88,13 @@ class MyBot(BaseAgent):
         chaseGoal(self, packet, self.field_info, controls)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
         #controls.throttle = -1.0 if ball_behind else 1.0
-        controls.throttle = 1
+        ball_relative_to_car = relative_location(car_location, car_oriantation, ball_location).normalized()
+        controls.throttle = 1.0 if ball_relative_to_car[0] > -0.8 else -1.0
+        if abs(ball_relative_to_car[1]) < 0.1 and controls.throttle > 0.8: controls.boost = True
+        else: controls.boost = False
+        #controls.boost = True if abs(ball_relative_to_car[1]) < 0.1 else False 
         # You can set more controls if you want, like controls.boost.
-
-        #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"index: {self.index}", self.renderer.white())
+        #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"({ball_relative_to_car})", self.renderer.white())
+        #self.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"index: {self.index}", self.renderer.white())
 
         return controls

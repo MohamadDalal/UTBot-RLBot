@@ -50,12 +50,12 @@ def chaseGoal(self: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPack
     ball_location = Vec3(packet.game_ball.physics.location)
     if (self.team + 1) % 2 == 0:
         opponent_goal = field_info.goals[(self.team + 1) % 2]
-        left_target_location = Vec3(opponent_goal.location) + Vec3(0.5*opponent_goal.width,0,0) - Vec3(200,0,0)
-        right_target_location:Vec3 = left_target_location - Vec3(opponent_goal.width,0,0) + Vec3(400,0,0)
+        left_target_location = Vec3(opponent_goal.location) - Vec3(0.5*opponent_goal.width,0,0) + Vec3(200,0,0)
+        right_target_location:Vec3 = left_target_location + Vec3(opponent_goal.width,0,0) - Vec3(400,0,0)
     else:
         opponent_goal = field_info.goals[(self.team + 1) % 2]
-        left_target_location = Vec3(opponent_goal.location) + Vec3(0.5*opponent_goal.width,0,0) + Vec3(200,0,0)
-        right_target_location:Vec3 = left_target_location - Vec3(opponent_goal.width,0,0) - Vec3(400,0,0)
+        left_target_location = Vec3(opponent_goal.location) + Vec3(0.5*opponent_goal.width,0,0) - Vec3(200,0,0)
+        right_target_location:Vec3 = left_target_location - Vec3(opponent_goal.width,0,0) + Vec3(400,0,0)
 
     car_to_ball = ball_location - car_location
     car_to_ball_direction = car_to_ball.normalized()
