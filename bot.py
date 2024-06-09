@@ -89,7 +89,7 @@ class MyBot(BaseAgent):
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
         #controls.throttle = -1.0 if ball_behind else 1.0
         ball_relative_to_car = relative_location(car_location, car_oriantation, ball_location).normalized()
-        controls.throttle = 1.0 if ball_relative_to_car[0] > -0.8 else -1.0
+        controls.throttle = 1.0 # if ball_relative_to_car[0] > -0.95 else -1.0
         if abs(ball_relative_to_car[1]) < 0.1 and controls.throttle > 0.8: controls.boost = True
         else: controls.boost = False
         #controls.boost = True if abs(ball_relative_to_car[1]) < 0.1 else False 

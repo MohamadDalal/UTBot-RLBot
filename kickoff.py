@@ -45,6 +45,23 @@ def handle_kickoff(self: BaseAgent, packet: GameTickPacket, controls:SimpleContr
             controls.steer = steer_toward_target(packet.game_cars[self.index], ball_location)
             controls.throttle = 1.0
             controls.boost = True
+    elif kickoff_type == 1:
+        if 1500 < car_velocity.length() < 1550: # and not ball_behind:
+            # We'll do a front flip if the car is moving at a certain speed.
+            controls.boost = True
+            return begin_wave_dash(self, packet, wait_duration=0.1)
+
+            #if self.index == 0:
+            #    controls.boost = True
+            #    return begin_wave_dash(self, packet)
+            #else:
+            #    return begin_front_flip(self, packet)
+        elif dist_to_ball < 400:
+            return begin_front_flip(self, packet)
+        else:
+            controls.steer = steer_toward_target(packet.game_cars[self.index], ball_location)
+            controls.throttle = 1.0
+            controls.boost = True
     else:
         if 1500 < car_velocity.length() < 1550: # and not ball_behind:
             # We'll do a front flip if the car is moving at a certain speed.
