@@ -45,9 +45,10 @@ def turn_radius2(v):
         return 0
     return 1.0 / curvature(v)
 
-def chaseGoal(self: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPacket, controls: SimpleControllerState):
+def chaseGoal(self: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPacket, controls: SimpleControllerState, ball_location: Vec3 = None):
     car_location = Vec3(packet.game_cars[self.index].physics.location)
-    ball_location = Vec3(packet.game_ball.physics.location)
+    if ball_location is None:
+        ball_location = Vec3(packet.game_ball.physics.location)
     if (self.team + 1) % 2 == 0:
         opponent_goal = field_info.goals[(self.team + 1) % 2]
         left_target_location = Vec3(opponent_goal.location) - Vec3(0.5*opponent_goal.width,0,0) + Vec3(200,0,0)

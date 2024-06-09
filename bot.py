@@ -55,10 +55,13 @@ class MyBot(BaseAgent):
         # By default we will chase the ball, but target_location can be changed later
         target_location = ball_location
 
-        if car_location.dist(ball_location) > 1500:
+        if True: #car_location.dist(ball_location) > 1500:
             # We're far away from the ball, let's try to lead it a little bit
             ball_prediction = self.get_ball_prediction_struct()  # This can predict bounces, etc
-            ball_in_future = find_slice_at_time(ball_prediction, packet.game_info.seconds_elapsed + 2)
+            #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f'Dist to ball: {car_location.dist(ball_location):.1f}', self.renderer.white())
+            predict_time = min(2, car_location.dist(ball_location)/1000)
+            #self.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f'Predict time: {predict_time:.1f}', self.renderer.white())
+            ball_in_future = find_slice_at_time(ball_prediction, packet.game_info.seconds_elapsed + predict_time)
 
             # ball_in_future might be None if we don't have an adequate ball prediction right now, like during
             # replays, so check it to avoid errors.
@@ -85,7 +88,7 @@ class MyBot(BaseAgent):
 
         #controls.steer = steer_toward_target(my_car, target_location)
         #controls.steer = chaseGoal(self, packet, self.field_info)
-        chaseGoal(self, packet, self.field_info, controls)
+        chaseGoal(self, packet, self.field_info, controls, ball_location=target_location)
         #self.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, str(Vec3.dot(car_yaw_vector, target_location-car_location) > 0), self.renderer.white())
         #controls.throttle = -1.0 if ball_behind else 1.0
         ball_relative_to_car = relative_location(car_location, car_oriantation, ball_location).normalized()

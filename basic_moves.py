@@ -20,16 +20,26 @@ def begin_front_flip(self: BaseAgent, packet: GameTickPacket):
     # Return the controls associated with the beginning of the sequence so we can start right away.
     return self.active_sequence.tick(packet)
 
-def begin_wave_dash(self: BaseAgent, packet: GameTickPacket, wait_duration = 0):
+def begin_wave_dash(self: BaseAgent, packet: GameTickPacket, wait_duration = None):
     # Send some quickchat just for fun
     self.send_quick_chat(team_only=False, quick_chat=QuickChatSelection.Information_IGotIt)
 
-    self.active_sequence = Sequence([
-        ControlStep(duration=0.01, controls=SimpleControllerState(jump=True, boost=True)),
-        #ControlStep(duration=0.02, controls=SimpleControllerState(jump=False, boost=True)),
-        ControlStep(duration=0.15, controls=SimpleControllerState(pitch=-1, boost=True)),
-        ControlStep(duration=0.05, controls=SimpleControllerState(boost=True)),
-        ControlStep(duration=0.43, controls=SimpleControllerState(pitch=1, boost=True)),
-        ControlStep(duration=wait_duration, controls=SimpleControllerState(boost=True)),
-        ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=-1, boost=True)),
-    ])
+    if wait_duration is None:
+        self.active_sequence = Sequence([
+            ControlStep(duration=0.01, controls=SimpleControllerState(jump=True, boost=True)),
+            #ControlStep(duration=0.02, controls=SimpleControllerState(jump=False, boost=True)),
+            ControlStep(duration=0.15, controls=SimpleControllerState(pitch=-1, boost=True)),
+            ControlStep(duration=0.05, controls=SimpleControllerState(boost=True)),
+            ControlStep(duration=0.43, controls=SimpleControllerState(pitch=1, boost=True)),
+            ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=-1, boost=True)),
+        ])
+    else:
+        self.active_sequence = Sequence([
+            ControlStep(duration=0.01, controls=SimpleControllerState(jump=True, boost=True)),
+            #ControlStep(duration=0.02, controls=SimpleControllerState(jump=False, boost=True)),
+            ControlStep(duration=0.15, controls=SimpleControllerState(pitch=-1, boost=True)),
+            ControlStep(duration=0.05, controls=SimpleControllerState(boost=True)),
+            ControlStep(duration=0.43, controls=SimpleControllerState(pitch=1, boost=True)),
+            ControlStep(duration=wait_duration, controls=SimpleControllerState(boost=True)),
+            ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=-1, boost=True)),
+        ])
