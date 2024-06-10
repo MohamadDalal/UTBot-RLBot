@@ -1,5 +1,6 @@
 import pygame
 from vec import Vec3
+from orientation import Orientation, relative_location
 from math import sin, cos, atan2, sqrt, pi
 
 class LineVector():
@@ -9,6 +10,12 @@ class LineVector():
         self.rotation = rotationVec.normalized()
         self.moving = False
         self.rotating = False
+
+class Rotation():
+    def __init__(self, yaw, pitch, roll):
+        self.yaw = yaw
+        self.pitch = pitch
+        self.roll = roll
 
 class GameClass():
 
@@ -89,6 +96,34 @@ class GameClass():
         pygame.draw.line(self.screen, (255,0,0), self.player.location.as_tuple_2d(), center_minus, 2)
         pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec1_angle, vec2_angle)
         pygame.draw.arc(self.screen, (255,0,0), rect_minus, vec2_angle, vec1_angle)
+
+    def drawCirclePath2(self, vec1: LineVector, vec2: LineVector, text_pos: tuple[int, int]):
+        radius_plus, radius_minus = self.calcRadius(vec1, vec2)
+        player_orientation = Orientation(Rotation(atan2(vec1.rotation.x, vec1.rotation.y), 0, 0))
+        #print(player_orientation.forward, player_orientation.right, player_orientation.up)
+        relative_loc = relative_location(vec1.location, player_orientation, vec2.location)#+Vec3(2*(vec1.location[0]-vec2.location[0]),0,0))
+        draw_rect1 = pygame.Rect(text_pos[0], text_pos[1], 20, 20)
+        draw_rect2 = pygame.Rect(text_pos[0], text_pos[1]+20, 20, 20)
+        self.screen.fill((0,0,0), draw_rect1)
+        self.screen.fill((0,0,0), draw_rect2)
+        # Create the text to be displayed by specifying font, font size, text and color. Check documentation for more into
+        text1 = pygame.font.SysFont("Arial", 16).render(f"Orientation: ({player_orientation.forward}, {player_orientation.right}, {player_orientation.up})", False, (255,255,255))
+        text2 = pygame.font.SysFont("Arial", 16).render(f"Relative Location: {relative_loc}", False, (255,255,255))
+        # Draw statistics
+        self.screen.blit(text1, draw_rect1.topleft)
+        self.screen.blit(text2, draw_rect2.topleft)
+        rect_plus = pygame.Rect(0, 0, 2*abs(radius_plus), 2*abs(radius_plus))
+        rect_minus = pygame.Rect(0, 0, 2*abs(radius_minus), 2*abs(radius_minus))
+        center_plus = (vec1.location + vec1.rotation.cross(Vec3(0,0,-1)).normalized() * radius_plus).as_tuple_2d()
+        center_minus = (vec1.location + vec1.rotation.cross(Vec3(0,0,-1)).normalized() * radius_minus).as_tuple_2d()
+        rect_plus.center = center_plus
+        rect_minus.center = center_minus
+        vec1_angle = atan2(vec1.rotation.x, vec1.rotation.y)
+        vec2_angle = atan2(vec2.rotation.x, vec2.rotation.y)
+        pygame.draw.line(self.screen, (0,255,0), self.player.location.as_tuple_2d(), center_plus, 2)
+        pygame.draw.line(self.screen, (255,0,0), self.player.location.as_tuple_2d(), center_minus, 2)
+        pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec1_angle, vec2_angle)
+        pygame.draw.arc(self.screen, (255,0,0), rect_minus, vec2_angle, vec1_angle)
         
 
     def drawArrow(self, start: Vec3, end: Vec3):
@@ -141,7 +176,7 @@ class GameClass():
             arrows.append((self.desired, self.drawArrow(self.desired.location, self.desired.location + self.desired.rotation * 20)))
             #radius_plus, radius_minus = self.calcRadius(self.player, self.desired)
             #print(radius_plus, radius_minus)
-            self.drawCirclePath(self.player, self.desired)
+            self.drawCirclePath2(self.player, self.desired, (0,40))
             # Iterate through all events the happened since last frame. Do stuff for the ones you want
             for e in eventList:
                 # If the X button to close the window is pressed then close the game
@@ -187,6 +222,7 @@ class GameClass():
                         a[0].rotating = False
                     if a[0].moving:
                         a[0].location = Vec3(mouse_pos[0], mouse_pos[1], 0)
+                    break
                     
                 elif a[0].moving:
                     if mouse_up_happened:
@@ -195,6 +231,7 @@ class GameClass():
                     else:
                         a[0].location = Vec3(mouse_pos[0], mouse_pos[1], 0)
                         cursor_current = cursor_hand
+                    break
                 elif a[0].rotating:
                     if mouse_up_happened:
                         a[0].moving = False
@@ -202,6 +239,7 @@ class GameClass():
                     else:
                         a[0].rotation = (Vec3(mouse_pos[0], mouse_pos[1], 0) - a[0].location).normalized()
                         cursor_current = cursor_hand
+                    break
                 else:
                     cursor_current = cursor_arrow
                     continue
@@ -216,5 +254,5 @@ class GameClass():
             pygame.display.flip()
 
 if __name__=="__main__":
-    gameObj = GameClass(FPS=60)
+    gameObj = GameClass(FPS=60, screenSize=(1920, 1080))
     gameObj.playGame()

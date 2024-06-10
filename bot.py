@@ -14,6 +14,8 @@ from targeting import chaseGoal
 
 from math import sin,cos
 
+# First class that implements BaseAgent is loaded by RLBot
+
 class MyBot(BaseAgent):
 
     def __init__(self, name, team, index):
