@@ -21,6 +21,7 @@ def begin_front_flip(self: BaseAgent, packet: GameTickPacket):
     return self.active_sequence.tick(packet)
 
 def begin_wave_dash(self: BaseAgent, packet: GameTickPacket, wait_duration = None):
+    # Need to make this less hardcoded
     # Send some quickchat just for fun
     self.send_quick_chat(team_only=False, quick_chat=QuickChatSelection.Information_IGotIt)
 

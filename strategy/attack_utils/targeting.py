@@ -79,44 +79,51 @@ def chaseGoal(self: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPack
     #self.renderer.draw_line_3d(ball_location, ball_location+direction_of_approach*180, self.renderer.orange() if self.index else self.renderer.blue())
     #self.renderer.draw_line_3d(offset_ball_location, final_target, self.renderer.orange() if self.index else self.renderer.blue())
 
-    #min_turn_radius = turn_radius2(Vec3(packet.game_cars[self.index].physics.velocity).length())
-    #wanted_turn_radius = Vec3.length(offset_ball_location-car_location)
-    ##self.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"Min turn radius: {min_turn_radius}", self.renderer.white())
-    ##self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Wanted turn radius: {wanted_turn_radius}", self.renderer.white())
-    #
-    #radius_plus, radius_minus = turn_radius(Vec3(packet.game_cars[self.index].physics.velocity).flat(), direction_of_approach.flat(), car_location.flat(), offset_ball_location.flat())
-    ##needed_radius = turn_radius(Vec3(packet.game_cars[self.index].physics.velocity).flat(), direction_of_approach, car_location, offset_ball_location)
-    #needed_radius = radius_plus if abs(radius_plus) < abs(radius_minus) else radius_minus
-    #self.renderer.draw_string_3d(car_location+Vec3(0,0,90), 1, 1, f"Radius min: {min_turn_radius}", self.renderer.white())
-    #self.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"Radius-: {radius_minus}", self.renderer.white())
-    #self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Radius+: {radius_plus}", self.renderer.white())
-    ##self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Radius: {needed_radius}", self.renderer.white())
-    #p = car_location.flat() + needed_radius*Vec3(packet.game_cars[self.index].physics.velocity).flat().cross(Vec3(0,0,-1)).normalized()
-    #turn_target = offset_ball_location.flat() - (direction_of_approach.flat().dot(offset_ball_location.flat() - p))*direction_of_approach.flat()
-    #self.renderer.draw_line_3d(car_location, p, self.renderer.green())
-    #self.renderer.draw_line_3d(turn_target, turn_target + needed_radius*direction_of_approach.flat().cross(Vec3(0,0,-1)).normalized(), self.renderer.green())
-    #self.renderer.draw_line_3d(car_location, car_location + 200*Vec3(packet.game_cars[self.index].physics.velocity).flat().normalized(), self.renderer.red())
-    #self.renderer.draw_line_3d(offset_ball_location, offset_ball_location + 200*direction_of_approach.flat().normalized(), self.renderer.red())
-    ##self.renderer.draw_line_3d(car_location, car_location + radius_plus*Vec3(packet.game_cars[self.index].physics.velocity).flat().cross(Vec3(0,0,-1)).normalized(), self.renderer.red())
+    min_turn_radius = turn_radius2(Vec3(packet.game_cars[self.index].physics.velocity).length())
+    wanted_turn_radius = Vec3.length(offset_ball_location-car_location)
+    #self.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"Min turn radius: {min_turn_radius}", self.renderer.white())
+    #self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Wanted turn radius: {wanted_turn_radius}", self.renderer.white())
+    
+    radius_plus, radius_minus = turn_radius(Vec3(packet.game_cars[self.index].physics.velocity).flat(), direction_of_approach.flat(), car_location.flat(), offset_ball_location.flat())
+    #needed_radius = turn_radius(Vec3(packet.game_cars[self.index].physics.velocity).flat(), direction_of_approach, car_location, offset_ball_location)
+    needed_radius = radius_plus if abs(radius_plus) < abs(radius_minus) else radius_minus
+    self.renderer.draw_string_3d(car_location+Vec3(0,0,90), 1, 1, f"Radius min: {min_turn_radius}", self.renderer.white())
+    self.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"Radius-: {radius_minus}", self.renderer.white())
+    self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Radius+: {radius_plus}", self.renderer.white())
+    #self.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"Radius: {needed_radius}", self.renderer.white())
+    p = car_location.flat() + needed_radius*Vec3(packet.game_cars[self.index].physics.velocity).flat().cross(Vec3(0,0,-1)).normalized()
+    turn_target = offset_ball_location.flat() - (direction_of_approach.flat().dot(offset_ball_location.flat() - p))*direction_of_approach.flat()
+    self.renderer.draw_line_3d(car_location, p, self.renderer.green())
+    self.renderer.draw_line_3d(turn_target, turn_target + needed_radius*direction_of_approach.flat().cross(Vec3(0,0,-1)).normalized(), self.renderer.green())
+    self.renderer.draw_line_3d(car_location, car_location + 200*Vec3(packet.game_cars[self.index].physics.velocity).flat().normalized(), self.renderer.red())
+    self.renderer.draw_line_3d(offset_ball_location, offset_ball_location + 200*direction_of_approach.flat().normalized(), self.renderer.red())
+    #self.renderer.draw_line_3d(car_location, car_location + radius_plus*Vec3(packet.game_cars[self.index].physics.velocity).flat().cross(Vec3(0,0,-1)).normalized(), self.renderer.red())
 
     controls.steer =  steer_toward_target(packet.game_cars[self.index], final_target)
     #self.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"steer: {controls.steer}", self.renderer.white())
 
 
-def turn_radius(current_orientation: Vec3, desired_orientation: Vec3, current_location: Vec3, desired_location: Vec3):
+def turn_radius(current_orientation: Vec3, desired_orientation: Vec3, current_location: Vec3, desired_location: Vec3, epsilon=1e-6):
     # Calculate the radius of the circle we need to turn in
-    # Needs to consider when we cannot possible turn for the ball with the desired oriantation
-    radius_direction = current_orientation.cross(Vec3(0,0,-1)).normalized()
-    c = desired_location - current_location - (desired_orientation.dot(desired_location) + desired_orientation.dot(current_location))*desired_orientation
-    d = radius_direction + (desired_orientation.dot(radius_direction))*desired_orientation
-    det = c.dot(d)**2-(d.dot(d)-1)*c.dot(c)
-    if det < 0:
-        print(det)
-        return 0, 0
-    radius_plus = (c.dot(d)+sqrt(det))/(d.dot(d)-1)
-    radius_minus = (c.dot(d)-sqrt(det))/(d.dot(d)-1)
-    #return radius_plus if abs(radius_plus) < abs(radius_minus) else radius_minus
-    return radius_plus, radius_minus
+        # Needs to consider when we cannot possible turn for the ball with the desired oriantation
+        radius_direction = current_orientation.cross(Vec3(0,0,-1)).normalized()
+        d = (desired_orientation.dot(radius_direction))*desired_orientation - radius_direction
+        if abs(d.dot(d)-1) < epsilon:
+            # Return half the distance from current_location to desired line
+            #print("Parallel")
+            #dist = (current_location - desired_location).length()**2 - current_location.dot(desired_orientation)**2
+            dist = 0.5*(desired_location - current_location - desired_orientation.dot(desired_location - current_location)*desired_orientation).length()
+            return dist, -dist
+        c = desired_location - current_location + (desired_orientation.dot(current_location) - desired_orientation.dot(desired_location))*desired_orientation
+        det = c.dot(d)**2-(d.dot(d)-1)*c.dot(c)
+        #print(c, d)
+        if det < 0:
+            print(det)
+            return 0, 0
+        radius_plus = (-c.dot(d)+sqrt(det))/(d.dot(d)-1)
+        radius_minus = (-c.dot(d)-sqrt(det))/(d.dot(d)-1)
+        #return radius_plus if abs(radius_plus) < abs(radius_minus) else radius_minus
+        return radius_plus, radius_minus
 
 def max_speed_given_radius(v):
     # Calculate the max speed we can go in given the radius we need to traverse
