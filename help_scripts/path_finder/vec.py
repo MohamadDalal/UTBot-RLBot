@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from typing import Union
 
 from rlbot.utils.structures.game_data_struct import Vector3
@@ -114,3 +115,6 @@ class Vec3:
     
     def as_tuple_2d(self):
         return self.x, self.y
+    
+    def as_numpy(self):
+        return np.array([self.x, self.y, self.z])
