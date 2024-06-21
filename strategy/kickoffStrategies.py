@@ -11,9 +11,9 @@ from util.basic_moves import begin_front_flip
 
 class KickoffStrategy(BaseStrategy):
 
-    def __init__(self, botIndex: int):
-        super().__init__(botIndex)
-        self.strategies = {"WaveDash": WaveDashKickoff(botIndex)}
+    def __init__(self, botIndex: int, bot: BaseAgent):
+        super().__init__(botIndex, bot)
+        self.strategies = {"WaveDash": WaveDashKickoff(botIndex, bot)}
         self.last_call = perf_counter()
         self.kickoff_type = 0
 
@@ -47,8 +47,8 @@ class KickoffStrategy(BaseStrategy):
 class WaveDashKickoff(BaseStrategy):
 
 
-    def __init__(self, botIndex: int):
-        super().__init__(botIndex)
+    def __init__(self, botIndex: int, bot: BaseAgent):
+        super().__init__(botIndex, bot)
 
     def begin_wave_dash(self, bot: BaseAgent, packet: GameTickPacket, wait_duration = None):
         if wait_duration is None:

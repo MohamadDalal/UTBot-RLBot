@@ -4,8 +4,9 @@ from rlbot.utils.structures.ball_prediction_struct import BallPrediction
 
 class BaseStrategy():
 
-    def __init__(self, botIndex: int):
+    def __init__(self, botIndex: int, bot: BaseAgent):
         self.botIndex = botIndex
+        self.bot = bot
 
     def isViable(self, packet: GameTickPacket):
         return False

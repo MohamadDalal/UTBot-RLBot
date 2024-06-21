@@ -10,9 +10,9 @@ from util.ball_prediction_analysis import find_slice_at_time
 
 class AttackStrategy(BaseStrategy):
 
-    def __init__(self, botIndex: int):
-        super().__init__(botIndex)
-        self.strategies = {"ShootAtNet": ShootAtNet(botIndex)}
+    def __init__(self, botIndex: int, bot: BaseAgent):
+        super().__init__(botIndex, bot)
+        self.strategies = {"ShootAtNet": ShootAtNet(botIndex, bot)}
 
     def __str__(self):
         return "AttackStrategy"
@@ -26,8 +26,8 @@ class AttackStrategy(BaseStrategy):
 
 class ShootAtNet(BaseStrategy):
 
-    def __init__(self, botIndex: int):
-        super().__init__(botIndex)
+    def __init__(self, botIndex: int, bot: BaseAgent):
+        super().__init__(botIndex, bot)
 
     def isViable(self, packet: GameTickPacket):
         # Find a way to determine if the bot is in a position to shoot at the net:
@@ -69,7 +69,9 @@ class ShootAtNet(BaseStrategy):
         chaseGoal(bot, packet, bot.field_info, controls, ball_location=target_location)
         ball_relative_to_car = relative_location(car_location, car_oriantation, ball_location).normalized()
         controls.throttle = 1.0 # if ball_relative_to_car[0] > -0.95 else -1.0
-        if abs(ball_relative_to_car[1]) < 0.1 and controls.throttle > 0.8: controls.boost = True
+        if (abs(ball_relative_to_car[1]) < 0.1 and controls.throttle > 0.8
+            and not my_car.is_super_sonic):
+            controls.boost = True
         else: controls.boost = False
         #controls.boost = True if abs(ball_relative_to_car[1]) < 0.1 else False 
         # You can set more controls if you want, like controls.boost.

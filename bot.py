@@ -3,8 +3,10 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 from util.boost_pad_tracker import BoostPadTracker
 from util.sequence import Sequence
+from util.ball_prediction_analysis import GOAL_THRESHOLD
 
 from strategy.attackStrategies import AttackStrategy
+from strategy.defenceStrategies import DefenceStrategy
 from strategy.kickoffStrategies import KickoffStrategy
 
 # First class that implements BaseAgent is loaded by RLBot
@@ -15,9 +17,9 @@ class MyBot(BaseAgent):
         super().__init__(name, team, index)
         self.active_sequence: Sequence = None
         self.boost_pad_tracker = BoostPadTracker()
-        self.kickoff_strategy = KickoffStrategy(index)
-        self.defence_strategy = None
-        self.attack_strategy = AttackStrategy(index)
+        self.kickoff_strategy = KickoffStrategy(index, self)
+        self.defence_strategy = DefenceStrategy(index, self)
+        self.attack_strategy = AttackStrategy(index, self)
         self.current_strategy = self.kickoff_strategy
 
     def initialize_agent(self):
@@ -28,10 +30,11 @@ class MyBot(BaseAgent):
     def choose_strategy(self, packet: GameTickPacket):
         if self.kickoff_strategy.isViable(packet):
             self.current_strategy = self.kickoff_strategy
+        elif self.defence_strategy.isViable(packet):
+        #elif True:
+            self.current_strategy = self.defence_strategy
         elif self.attack_strategy.isViable(packet):
             self.current_strategy = self.attack_strategy
-        elif self.defence_strategy.isViable(packet):
-            self.current_strategy = self.defence_strategy
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         """

@@ -46,6 +46,8 @@ def turn_radius2(v):
     return 1.0 / curvature(v)
 
 def chaseGoal(self: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPacket, controls: SimpleControllerState, ball_location: Vec3 = None):
+    # TODO: If the balle is behind the car after the turn, then we should drive a bit more before making the turn
+    # TODO: If curvature too large then drift
     car_location = Vec3(packet.game_cars[self.index].physics.location)
     if ball_location is None:
         ball_location = Vec3(packet.game_ball.physics.location)
