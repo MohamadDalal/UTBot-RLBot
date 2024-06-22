@@ -53,7 +53,7 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
     c = car_location
     brake_speed = 3500 if brake else 525
     time_to_desired_speed = (s - desiredSpeed) / brake_speed
-    time_taken = time_to_desired_speed
+    time_taken = 0
     # TODO: Decide if we are to turn left or right
     turn_dir = np.sign(np.cross(a, b - c)[2]) # -1 if left, 1 if right
     # Calculate the angle between the car orientation and the target orientation
@@ -72,6 +72,7 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
             c = c+vel*deltaT
             # Calculate the angle between the car orientation and the target orientation
             angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
+            time_taken += deltaT
     #print("Middle angle: ", angle)
     iter_count = 0
     while np.abs(angle) > epsilon and iter_count < max_iter:
@@ -109,7 +110,7 @@ velY = 1
 
 # Calculate z values
 #Z = (X + Y + 5)**0.5
-funcZ = lambda x, y: calc_turning_time(2300, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]))
+funcZ = lambda x, y: calc_turning_time(2300, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]), brake = True)
 #print([[funcZ(x, y) for x in x] for y in y])
 Times = np.array([[funcZ(x, y) for x in x] for y in y])
 Z = np.array([[np.sum(Times[i][j]) for j in range(len(x))] for i in range(len(y))])
@@ -119,7 +120,7 @@ print(Z)
 
 # Create contour plot
 #plt.contour(X, Y, Z)
-plt.imshow(Z, extent=[-10, 10, -10, 10], origin='lower',
+plt.imshow(Z, extent=[-1000, 1000, -1000, 1000], origin='lower',
            cmap='magma')
 plt.colorbar()
 
@@ -127,7 +128,7 @@ plt.colorbar()
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Time taken to reach the ball at a certain position')
-plt.savefig("help_scripts\time_of_arrival_estimator\first_try2.png", bbox_inches='tight', dpi=300)
+plt.savefig("help_scripts\\time_of_arrival_estimator\\first_try_brake.png", bbox_inches='tight', dpi=300)
 
 # Show the plot
 plt.show()

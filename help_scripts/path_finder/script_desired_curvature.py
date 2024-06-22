@@ -1,10 +1,12 @@
 import pygame
-import numpy as np
 from vec import Vec3
 from orientation import Orientation, relative_location
 from math import sin, cos, atan2, sqrt, pi
-from threading import Thread
-from time import sleep
+
+def sign(num) -> int:
+    if num >= 0 :    return 1
+    elif num < 0:   return -1
+    else:           return 0
 
 class LineVector():
 
@@ -27,9 +29,6 @@ class GameClass():
         self.ScreenSize = screenSize
         self.player = LineVector(Vec3(1000,400,0), Vec3(0,-1,0).normalized())
         self.desired = LineVector(Vec3(800,600,0), Vec3(0,1,0))
-        self.editLock = False
-        self.threads = []
-
 
 
     # Function that uninitializes the pygame module
@@ -39,89 +38,22 @@ class GameClass():
         pygame.quit()
         exit()
 
-    # v is the magnitude of the velocity in the car's forward direction
-    def curvature(self, v):
-        if 0.0 <= v < 500.0:
-            return 0.006900 - 5.84e-6 * v
-        if 500.0 <= v < 1000.0:
-            return 0.005610 - 3.26e-6 * v
-        if 1000.0 <= v < 1500.0:
-            return 0.004300 - 1.95e-6 * v
-        if 1500.0 <= v < 1750.0:
-            return 0.003025 - 1.1e-6 * v
-        if 1750.0 <= v < 2500.0:
-            return 0.001800 - 4e-7 * v
+    def desired_curvature(self, source: Vec3, target: Vec3, orientation: Vec3, epsilon=1e-5):
+        angle_to_target = orientation.ang_to(target - source)
+        dist = (target - source).length()
+        angle = abs(pi/2 - angle_to_target)
+        if sin(2*angle) < epsilon:
+            return 2/dist
+        radius = (dist*sin(angle))/sin(2*angle)
+        return 1/radius
 
-        return 0.0
-
-    def calc_turning_time(self, speed, desiredSpeed=850, epsilon=0.01, deltaT=1/120):
-        """
-        Calculate the time it takes to turn the car to a certain orientation
-        """
-
-
-        brakeSpeed=350
-        self.editLock = True
-        s = speed
-        a = self.player.rotation.normalized().as_numpy()
-        b = self.desired.location.as_numpy()
-        c = self.player.location.as_numpy()
-        time_to_desired_speed = (s - desiredSpeed) / brakeSpeed
-        time_taken = 0
-        # TODO: Decide if we are to turn left or right
-        turn_dir = np.sign(np.cross(a, b - c)[2]) # -1 if left, 1 if right
-        print(turn_dir)
-
-        # Calculate the angle between the car orientation and the target orientation
-        angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
-        #print("Start angle: ", angle)
-        for i in range(int(time_to_desired_speed//deltaT)):
-            if np.abs(angle) < epsilon:
-                print("Breaking at angle: ", angle)
-                break
-            else:
-                s -= brakeSpeed*deltaT
-                vel_ang = speed * self.curvature(s)
-                a = np.array([[np.cos(turn_dir*vel_ang*deltaT), -np.sin(turn_dir*vel_ang*deltaT), 0],
-                        [np.sin(turn_dir*vel_ang*deltaT), np.cos(turn_dir*vel_ang*deltaT), 0],
-                        [0, 0, 1]])@a
-                vel = s*a
-                c = c+vel*deltaT
-                # Calculate the angle between the car orientation and the target orientation
-                angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
-                print(angle)
-                time_taken += deltaT
-
-                # Pygame specific stuff
-                self.player.location = Vec3(c[0], c[1], c[2])
-                self.player.rotation = Vec3(a[0], a[1], a[2])
-                if self.runBool == False:
-                    return
-                sleep(deltaT)
-
-        #print("Middle angle: ", angle)
-        while np.abs(angle) > epsilon:
-            time_to_turn = angle / vel_ang
-            c = c+np.sqrt(2*(1/self.curvature(s))**2*(1-np.cos(turn_dir*angle)))*np.array([[np.cos(turn_dir*angle/2), -np.sin(turn_dir*angle/2), 0],
-                                                                                           [np.sin(turn_dir*angle/2), np.cos(turn_dir*angle/2), 0],
-                                                                                           [0, 0, 1]])@a
-            a = np.array([[np.cos(turn_dir*angle), -np.sin(turn_dir*angle), 0],
-                          [np.sin(turn_dir*angle), np.cos(turn_dir*angle), 0],
-                          [0, 0, 1]])@a
-            vel = s*a
-            # Calculate the angle between the car orientation and the target orientation
-            angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
-            time_taken += time_to_turn
-
-            # Pygame specific stuff
-            self.player.location = Vec3(c[0], c[1], c[2])
-            self.player.rotation = Vec3(a[0], a[1], a[2])
-            if self.runBool == False:
-                return
-            sleep(time_to_turn)
-        #print("End angle: ", angle)
-        self.editLock = False
-        #return time_taken
+    def drawCirclePath(self, vec1: LineVector, vec2: LineVector):
+        radius = 1/self.desired_curvature(vec1.location, vec2.location, vec1.rotation)
+        center = (vec1.location + vec1.rotation.cross(Vec3(0,0,-1)).normalized() * radius).as_tuple_2d()
+        pygame.draw.line(self.screen, (0,255,0), self.player.location.as_tuple_2d(), center, 2)
+        pygame.draw.line(self.screen, (0,255,0), self.desired.location.as_tuple_2d(), center, 2)
+        pygame.draw.circle(self.screen, (0,255,0), center, radius, 1)
+        
 
     def drawArrow(self, start: Vec3, end: Vec3):
         lineRect = pygame.draw.line(self.screen, (255,255,255), start.as_tuple_2d(), end.as_tuple_2d(), 2)
@@ -171,6 +103,9 @@ class GameClass():
             arrows = []
             arrows.append((self.player, self.drawArrow(self.player.location, self.player.location + self.player.rotation * 20)))
             arrows.append((self.desired, self.drawArrow(self.desired.location, self.desired.location + self.desired.rotation * 20)))
+            #radius_plus, radius_minus = self.calcRadius(self.player, self.desired)
+            #print(radius_plus, radius_minus)
+            self.drawCirclePath(self.player, self.desired)
             # Iterate through all events the happened since last frame. Do stuff for the ones you want
             for e in eventList:
                 # If the X button to close the window is pressed then close the game
@@ -180,8 +115,6 @@ class GameClass():
                 if e.type == pygame.KEYDOWN:
                     if e.key == pygame.K_ESCAPE:
                         self.close()
-                    if e.key == pygame.K_SPACE and not self.editLock:
-                        Thread(target=self.calc_turning_time, args=(230,), kwargs={"desiredSpeed":85}).start()
                     arrow_transform = 0 if e.key == pygame.K_t else arrow_transform
                     arrow_transform = 1 if e.key == pygame.K_r else arrow_transform
 
@@ -205,12 +138,7 @@ class GameClass():
             
             mouse_pos = pygame.mouse.get_pos()
             for a in arrows:
-                if self.editLock:
-                        a[0].moving = False
-                        a[0].rotating = False
-                        cursor_current = cursor_arrow
-                        continue
-                elif a[1].collidepoint(mouse_pos):
+                if a[1].collidepoint(mouse_pos):
                     #print("Collided")
                     cursor_current = cursor_hand
                     if mouse_down_happened:
@@ -255,5 +183,6 @@ class GameClass():
             pygame.display.flip()
 
 if __name__=="__main__":
-    gameObj = GameClass(FPS=60, screenSize=(1920, 1080))
+    gameObj = GameClass(FPS=30, screenSize=(1280, 720))
     gameObj.playGame()
+    

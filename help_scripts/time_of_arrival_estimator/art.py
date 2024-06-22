@@ -58,11 +58,9 @@ def calc_straight_time(speed, car_location, target_location, boost=True):
     t = (-v + np.sqrt(v**2 + 2*acceleration(v, boost)*d))/acceleration(v, boost) 
     return t
 
-def desired_curvature(source, target, angle_to_target, epsilon=1e-5):
+def desired_curvature(source, target, angle_to_target):
     dist = np.linalg.norm(target - source)
     angle = np.abs(np.pi/2 - angle_to_target)
-    if np.sin(2*angle) < epsilon:
-        return 2/dist
     radius = (dist*np.sin(angle))/np.sin(2*angle)
     return 1/radius
 
@@ -85,11 +83,9 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
     angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
     vel_ang = speed * curvature(s)
     if desiredSpeed is None:
-        desiredSpeed = inverse_curvature(desired_curvature(c, b, angle))#-0.001)
+        desiredSpeed = inverse_curvature(desired_curvature(c, b, angle))
     if desiredSpeed <= 0:
-        #print(b-c, desired_curvature(c, b, angle))
-        #return np.inf, np.inf
-        return 0, 0
+        return np.inf, np.inf
     elif desiredSpeed > s:
         time_to_desired_speed = (desiredSpeed - s) / acceleration(s, boost=straight_boost)
     else:
@@ -142,12 +138,6 @@ X, Y = np.meshgrid(x, y)
 velX = 0
 velY = 1
 
-#x = np.linspace(-1000, 1000, 100)
-#y = [1/desired_curvature(np.array([0, 0, 0]), np.array([i, i, 0]), np.pi/4) for i in x]
-#plt.plot(x, y)
-#plt.show()
-#
-#exit()
 # Moving directly backwards is a deceleration of 3500 uu/s. So the distance travelled is:
 # v = u + at
 # D = ut + 0.5at^2
@@ -174,7 +164,7 @@ plt.colorbar()
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Time taken to reach the ball at a certain position')
-plt.savefig("help_scripts\\time_of_arrival_estimator\\Time_Adjusting_Curvature0.png", bbox_inches='tight', dpi=300)
+#plt.savefig("help_scripts\\time_of_arrival_estimator\\first_try_brake.png", bbox_inches='tight', dpi=300)
 
 # Show the plot
 plt.show()

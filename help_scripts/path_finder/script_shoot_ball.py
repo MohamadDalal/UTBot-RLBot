@@ -3,6 +3,11 @@ from vec import Vec3
 from orientation import Orientation, relative_location
 from math import sin, cos, atan2, sqrt, pi
 
+def sign(num) -> int:
+    if num >= 0 :    return 1
+    elif num < 0:   return -1
+    else:           return 0
+
 class LineVector():
 
     def __init__(self, locationVec: Vec3, rotationVec: Vec3):
@@ -94,7 +99,7 @@ class GameClass():
         vec2_angle = atan2(vec2.rotation.x, vec2.rotation.y)
         pygame.draw.line(self.screen, (0,255,0), self.player.location.as_tuple_2d(), center_plus, 2)
         pygame.draw.line(self.screen, (255,0,0), self.player.location.as_tuple_2d(), center_minus, 2)
-        pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec1_angle, vec2_angle)
+        pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec1_angle, vec1_angle)
         pygame.draw.arc(self.screen, (255,0,0), rect_minus, vec2_angle, vec1_angle)
 
     def drawCirclePath2(self, vec1: LineVector, vec2: LineVector, text_pos: tuple[int, int]):
@@ -102,6 +107,7 @@ class GameClass():
         player_orientation = Orientation(Rotation(atan2(vec1.rotation.x, vec1.rotation.y), 0, 0))
         #print(player_orientation.forward, player_orientation.right, player_orientation.up)
         relative_loc = relative_location(vec1.location, player_orientation, vec2.location)#+Vec3(2*(vec1.location[0]-vec2.location[0]),0,0))
+        turn_dir = sign(vec1.rotation.cross(vec2.location - vec1.location)[2]) # -1 if left, 1 if right
         draw_rect1 = pygame.Rect(text_pos[0], text_pos[1], 20, 20)
         draw_rect2 = pygame.Rect(text_pos[0], text_pos[1]+20, 20, 20)
         self.screen.fill((0,0,0), draw_rect1)
@@ -122,7 +128,7 @@ class GameClass():
         vec2_angle = atan2(vec2.rotation.x, vec2.rotation.y)
         pygame.draw.line(self.screen, (0,255,0), self.player.location.as_tuple_2d(), center_plus, 2)
         pygame.draw.line(self.screen, (255,0,0), self.player.location.as_tuple_2d(), center_minus, 2)
-        pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec1_angle, vec2_angle)
+        pygame.draw.arc(self.screen, (0,255,0), rect_plus, vec2_angle, vec1_angle)
         pygame.draw.arc(self.screen, (255,0,0), rect_minus, vec2_angle, vec1_angle)
         
 
@@ -254,5 +260,6 @@ class GameClass():
             pygame.display.flip()
 
 if __name__=="__main__":
-    gameObj = GameClass(FPS=60, screenSize=(1920, 1080))
+    gameObj = GameClass(FPS=30, screenSize=(1280, 720))
     gameObj.playGame()
+    
