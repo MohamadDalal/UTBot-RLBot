@@ -28,7 +28,7 @@ def acceleration(v, boost=False):
     else:
         return 0
     if boost:
-        retVal += 991 + 1/3
+        retVal += 991 + 1/3 if v <= 2300 else 0
     return retVal
 
 def calc_straight_time(speed, car_location, target_location, boost=True):
@@ -40,7 +40,24 @@ def calc_straight_time(speed, car_location, target_location, boost=True):
     t = (-v + np.sqrt(v**2 + 2*acceleration(v, boost)*d))/acceleration(v, boost) 
     return t
 
-def calc_turning_time(speed, orientation, car_location, target_location, desiredSpeed=850, brake=True, epsilon=0.05, deltaT=1/120, max_iter=1000, straight_boost=True):
+# After testing it was found out that this comlicaiton is completely irrelevant for the field size we are working with.
+#def calc_straight_time(speed, car_location, target_location, boost=True, boost_amount=100, delta_t=1/120):
+#    # Speed change is v = v_0 + at
+#    # Distance change is d = v_0t + 0.5at^2
+#    # Time to reach target is t = (-v_0 + sqrt(v_0^2 + 2ad))/a
+#    v = speed
+#    d = np.linalg.norm(target_location - car_location) 
+#    t = 0
+#    boost_amount = boost_amount * 3/100
+#    while d - v*delta_t>0:
+#        d -= v*delta_t
+#        v += acceleration(speed, boost and boost_amount > 0)*delta_t
+#        t += delta_t
+#        boost_amount -= delta_t
+#    return t
+
+def calc_turning_time(speed, orientation, car_location, target_location,
+                      desiredSpeed=850, brake=True, epsilon=0.05, deltaT=1/120, max_iter=1000, straight_boost=True):
     """
     Calculate the time it takes to turn the car to a certain orientation
     """
@@ -58,13 +75,31 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
     turn_dir = np.sign(np.cross(a, b - c)[2]) # -1 if left, 1 if right
     # Calculate the angle between the car orientation and the target orientation
     angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
+    #vel_ang = speed * curvature(s)
+    vel_ang = min(speed * curvature(s), 9.11*time_taken)
     #print("Start angle: ", angle)
     for i in range(int(time_to_desired_speed//deltaT)):
         if angle < epsilon:
             break
         else:
             s -= brake_speed*deltaT
-            vel_ang = speed * curvature(s)
+            #vel_ang = speed * curvature(s)
+            vel_ang = min(speed * curvature(s), 9.11*time_taken)
+            a = np.array([[np.cos(turn_dir*vel_ang*deltaT), -np.sin(turn_dir*vel_ang*deltaT), 0],
+                        [np.sin(turn_dir*vel_ang*deltaT), np.cos(turn_dir*vel_ang*deltaT), 0],
+                        [0, 0, 1]])@a
+            vel = s*a
+            c = c+vel*deltaT
+            # Calculate the angle between the car orientation and the target orientation
+            angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
+            time_taken += deltaT
+    time_to_max_ang_speed = ((speed * curvature(s)) - vel_ang) / 9.11
+    #print(speed * curvature(s), 9.11, time_to_max_ang_speed)
+    for i in range(int(time_to_max_ang_speed//deltaT)):
+        if angle < epsilon:
+            break
+        else:
+            vel_ang = min(speed * curvature(s), 9.11*time_taken)
             a = np.array([[np.cos(turn_dir*vel_ang*deltaT), -np.sin(turn_dir*vel_ang*deltaT), 0],
                         [np.sin(turn_dir*vel_ang*deltaT), np.cos(turn_dir*vel_ang*deltaT), 0],
                         [0, 0, 1]])@a
@@ -75,6 +110,7 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
             time_taken += deltaT
     #print("Middle angle: ", angle)
     iter_count = 0
+    #max_vel_ang = speed * curvature(s)
     while np.abs(angle) > epsilon and iter_count < max_iter:
         time_to_turn = angle / vel_ang
         c = c+np.sqrt(2*(1/curvature(s))**2*(1-np.cos(turn_dir*angle)))*np.array([[np.cos(turn_dir*angle/2), -np.sin(turn_dir*angle/2), 0],
@@ -96,8 +132,10 @@ def calc_turning_time(speed, orientation, car_location, target_location, desired
 
 
 # Generate x and y values
-x = np.linspace(-1000, 1000, 100)
-y = np.linspace(-1000, 1000, 100)
+xRange = (-4096, 4096)
+yRange = (-5120, 5120)
+x = np.linspace(xRange[0], xRange[1], 200)
+y = np.linspace(yRange[0], yRange[1], 200)
 X, Y = np.meshgrid(x, y)
 
 velX = 0
@@ -110,7 +148,10 @@ velY = 1
 
 # Calculate z values
 #Z = (X + Y + 5)**0.5
-funcZ = lambda x, y: calc_turning_time(2300, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]), brake = True)
+#funcZ = lambda x, y: calc_turning_time(2300, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]), brake = True)
+speed = 2300
+funcZ = lambda x, y: calc_turning_time(speed, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]),
+                                       desiredSpeed=speed, brake = False, max_iter=10)
 #print([[funcZ(x, y) for x in x] for y in y])
 Times = np.array([[funcZ(x, y) for x in x] for y in y])
 Z = np.array([[np.sum(Times[i][j]) for j in range(len(x))] for i in range(len(y))])
@@ -120,15 +161,17 @@ print(Z)
 
 # Create contour plot
 #plt.contour(X, Y, Z)
-plt.imshow(Z, extent=[-1000, 1000, -1000, 1000], origin='lower',
+plt.imshow(Z_straight, extent=[xRange[0], xRange[1], yRange[0], yRange[1]], origin='lower',
            cmap='magma')
 plt.colorbar()
+
+plt.hlines(0, -int(2/curvature(speed)), int(2/curvature(speed)), colors='g')
 
 # Add labels and title
 plt.xlabel('x')
 plt.ylabel('y')
 plt.title('Time taken to reach the ball at a certain position')
-plt.savefig("help_scripts\\time_of_arrival_estimator\\first_try_brake.png", bbox_inches='tight', dpi=300)
+#plt.savefig("help_scripts\\time_of_arrival_estimator\\Didf_Forward_Time2300.png", bbox_inches='tight', dpi=300)
 
 # Show the plot
 plt.show()
