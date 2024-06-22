@@ -56,8 +56,17 @@ def calc_straight_time(speed, car_location, target_location, boost=True):
 #        boost_amount -= delta_t
 #    return t
 
+def simple_check_collision(car_orientation, car_location, target_location, car_length=118, car_width=84, length_offset=14, ball_radius=93):
+    car_location = car_location + car_orientation*length_offset
+    car_to_target = target_location - car_location
+    return np.linalg.norm(car_to_target) < max(car_length, car_width)/2 + ball_radius
+
+def check_collision(car_orientation, car_location, target_location, car_length=118, car_width=84, length_offset=14, ball_radius=93):
+    pass
+
 def calc_turning_time(speed, orientation, car_location, target_location,
-                      desiredSpeed=850, brake=True, epsilon=0.05, deltaT=1/120, max_iter=1000, straight_boost=True):
+                      desiredSpeed=850, brake=True, epsilon=0.05, deltaT=1/120, max_iter=1000, straight_boost=True,
+                      car_length=118, car_width=84, length_offset=14, ball_radius=93):
     """
     Calculate the time it takes to turn the car to a certain orientation
     """
@@ -75,16 +84,18 @@ def calc_turning_time(speed, orientation, car_location, target_location,
     turn_dir = np.sign(np.cross(a, b - c)[2]) # -1 if left, 1 if right
     # Calculate the angle between the car orientation and the target orientation
     angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
-    #vel_ang = speed * curvature(s)
-    vel_ang = min(speed * curvature(s), 9.11*time_taken)
+    vel_ang = speed * curvature(s)
+    #vel_ang = min(speed * curvature(s), 9.11*time_taken)
     #print("Start angle: ", angle)
     for i in range(int(time_to_desired_speed//deltaT)):
         if angle < epsilon:
             break
+        elif simple_check_collision(a, c, b, car_length=car_length, car_width=car_width, length_offset=length_offset, ball_radius=ball_radius):
+            break
         else:
             s -= brake_speed*deltaT
-            #vel_ang = speed * curvature(s)
-            vel_ang = min(speed * curvature(s), 9.11*time_taken)
+            vel_ang = speed * curvature(s)
+            #vel_ang = min(speed * curvature(s), 9.11*time_taken)
             a = np.array([[np.cos(turn_dir*vel_ang*deltaT), -np.sin(turn_dir*vel_ang*deltaT), 0],
                         [np.sin(turn_dir*vel_ang*deltaT), np.cos(turn_dir*vel_ang*deltaT), 0],
                         [0, 0, 1]])@a
@@ -97,6 +108,9 @@ def calc_turning_time(speed, orientation, car_location, target_location,
     #print(speed * curvature(s), 9.11, time_to_max_ang_speed)
     for i in range(int(time_to_max_ang_speed//deltaT)):
         if angle < epsilon:
+            break
+        elif simple_check_collision(a, c, b, car_length=car_length, car_width=car_width,
+                                    length_offset=length_offset, ball_radius=ball_radius):
             break
         else:
             vel_ang = min(speed * curvature(s), 9.11*time_taken)
@@ -111,7 +125,8 @@ def calc_turning_time(speed, orientation, car_location, target_location,
     #print("Middle angle: ", angle)
     iter_count = 0
     #max_vel_ang = speed * curvature(s)
-    while np.abs(angle) > epsilon and iter_count < max_iter:
+    while (np.abs(angle) > epsilon and iter_count < max_iter and time_taken <= 6
+           and not simple_check_collision(a, c, b, car_length=car_length, car_width=car_width, length_offset=length_offset, ball_radius=ball_radius)):
         time_to_turn = angle / vel_ang
         c = c+np.sqrt(2*(1/curvature(s))**2*(1-np.cos(turn_dir*angle)))*np.array([[np.cos(turn_dir*angle/2), -np.sin(turn_dir*angle/2), 0],
                                                                                   [np.sin(turn_dir*angle/2), np.cos(turn_dir*angle/2), 0],
@@ -125,7 +140,7 @@ def calc_turning_time(speed, orientation, car_location, target_location,
         angle = np.arccos(np.dot(a, b - c) / (np.linalg.norm(b - c)))
         time_taken += time_to_turn
         iter_count += 1
-    if iter_count >= max_iter:
+    if iter_count >= max_iter or time_taken > 6:
         return np.inf, np.inf
     #print("End angle: ", angle)
     return time_taken, calc_straight_time(s, c, b, boost=straight_boost)
@@ -134,8 +149,8 @@ def calc_turning_time(speed, orientation, car_location, target_location,
 # Generate x and y values
 xRange = (-4096, 4096)
 yRange = (-5120, 5120)
-x = np.linspace(xRange[0], xRange[1], 200)
-y = np.linspace(yRange[0], yRange[1], 200)
+x = np.linspace(xRange[0], xRange[1], 400)
+y = np.linspace(yRange[0], yRange[1], 400)
 X, Y = np.meshgrid(x, y)
 
 velX = 0
@@ -149,9 +164,9 @@ velY = 1
 # Calculate z values
 #Z = (X + Y + 5)**0.5
 #funcZ = lambda x, y: calc_turning_time(2300, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]), brake = True)
-speed = 2300
+speed = 1410
 funcZ = lambda x, y: calc_turning_time(speed, np.array([velX, velY, 0]), np.array([0, 0, 0]), np.array([x, y, 0]),
-                                       desiredSpeed=speed, brake = False, max_iter=10)
+                                       desiredSpeed=speed, brake = False, max_iter=100)
 #print([[funcZ(x, y) for x in x] for y in y])
 Times = np.array([[funcZ(x, y) for x in x] for y in y])
 Z = np.array([[np.sum(Times[i][j]) for j in range(len(x))] for i in range(len(y))])
@@ -161,7 +176,7 @@ print(Z)
 
 # Create contour plot
 #plt.contour(X, Y, Z)
-plt.imshow(Z_straight, extent=[xRange[0], xRange[1], yRange[0], yRange[1]], origin='lower',
+plt.imshow(Z, extent=[xRange[0], xRange[1], yRange[0], yRange[1]], origin='lower',
            cmap='magma')
 plt.colorbar()
 
