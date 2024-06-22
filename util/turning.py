@@ -31,8 +31,8 @@ def inverse_curvature(k):
         return (0.001800 - k)/4e-7
     return 2300
 
-def desired_curvature(source: Vec3, target: Vec3, epsilon=1e-5):
-    angle_to_target = source.ang_to(target - source)
+def desired_curvature(source: Vec3, target: Vec3, orientation: Vec3, epsilon=1e-5):
+    angle_to_target = orientation.ang_to(target - source)
     dist = (target - source).length()
     angle = abs(pi/2 - angle_to_target)
     if sin(2*angle) < epsilon:

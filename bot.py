@@ -3,7 +3,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 from util.boost_pad_tracker import BoostPadTracker
 from util.sequence import Sequence
-from util.ball_prediction_analysis import GOAL_THRESHOLD
+from util.vec import Vec3
 
 from strategy.attackStrategies import AttackStrategy
 from strategy.defenceStrategies import DefenceStrategy
@@ -25,6 +25,7 @@ class MyBot(BaseAgent):
     def initialize_agent(self):
         # Set up information about the boost pads now that the game is active and the info is available
         self.field_info = self.get_field_info()
+        #print(f"Goals info:", self.field_info.goals[0], self.field_info.goals[1])
         self.boost_pad_tracker.initialize_boosts(self.field_info)
 
     def choose_strategy(self, packet: GameTickPacket):
@@ -56,5 +57,6 @@ class MyBot(BaseAgent):
         self.choose_strategy(packet)
         self.renderer.draw_string_2d(10, 20*(self.index+1), 1, 1, f"Current strategy{self.index}: {self.current_strategy}", self.renderer.white())
         controls = self.current_strategy.execute(packet, self)
+        self.renderer.draw_line_3d(Vec3(0,0,0), self.field_info.goals[self.team].location, self.renderer.team_color(self.team))
 
         return controls

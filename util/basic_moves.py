@@ -44,3 +44,14 @@ def begin_wave_dash(self: BaseAgent, packet: GameTickPacket, wait_duration = Non
             ControlStep(duration=wait_duration, controls=SimpleControllerState(boost=True)),
             ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=-1, boost=True)),
         ])
+
+def begin_half_flip(self: BaseAgent, packet: GameTickPacket):
+    # Need to make this less hardcoded
+    self.active_sequence = Sequence([
+        ControlStep(duration=0.05, controls=SimpleControllerState(jump=True)),
+        ControlStep(duration=0.02, controls=SimpleControllerState(jump=False)),
+        ControlStep(duration=0.2, controls=SimpleControllerState(jump=True, pitch=1)),
+        ControlStep(duration=0.2, controls=SimpleControllerState(pitch=-1)),
+        ControlStep(duration=0.2, controls=SimpleControllerState(pitch=-1, roll=1)),
+        ControlStep(duration=0.4, controls=SimpleControllerState(roll=1)),
+    ])

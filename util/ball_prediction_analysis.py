@@ -23,13 +23,19 @@ def find_slice_at_time(ball_prediction: BallPrediction, game_time: float):
     return None
 
 
-def predict_future_goal(ball_prediction: BallPrediction):
+def predict_future_goal(ball_prediction: BallPrediction, team: int = None):
     """
     Analyzes the ball prediction to see if the ball will enter one of the goals. Only works on standard arenas.
     Will return the first ball slice which appears to be inside the goal, or None if it does not enter a goal.
+
+    Can search for a certain goal. Team 0's goal is in negative.
     """
-    return find_matching_slice(ball_prediction, 0, lambda s: abs(s.physics.location.y) >= GOAL_THRESHOLD,
-                               search_increment=20)
+    if team is None:
+        return find_matching_slice(ball_prediction, 0, lambda s: abs(s.physics.location.y) >= GOAL_THRESHOLD,
+                                search_increment=20)
+    else:
+        return find_matching_slice(ball_prediction, 0, lambda s: s.physics.location.y >= GOAL_THRESHOLD * (2 * team - 1),
+                                search_increment=20)
 
 
 def find_matching_slice(ball_prediction: BallPrediction, start_index: int, predicate: Callable[[Slice], bool],
