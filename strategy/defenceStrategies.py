@@ -56,7 +56,7 @@ class DefenceStrategy(BaseStrategy):
         my_time_to_ball = calc_time_to_ball(car_location, car_velocity, ball_location, ball_velocity, ball_prediction)
         opp_time_to_ball = calc_time_to_ball(opponent_location, opponent_velocity, ball_location, ball_velocity, ball_prediction)
         can_make_ball = my_time_to_ball < opp_time_to_ball
-        self.bot.renderer.draw_string_2d(10, 40+20*(self.botIndex+1), 1, 1, f"Time to ball {self.botIndex}: {my_time_to_ball}", self.bot.renderer.white())
+        self.bot.renderer.draw_string_2d(10, 80+20*(self.botIndex+1), 1, 1, f"Time to ball {self.botIndex}: {my_time_to_ball}", self.bot.renderer.white())
         # TODO: defend if ball is heading to own net
         is_goal = predict_future_goal(ball_prediction, self.bot.team) is not None
         # TODO: Implement a way to know if opponent is dribbling or shooting. So we rush if they are dribbling.
@@ -107,6 +107,7 @@ class GetBoost(BaseStrategy):
         car_orientation = Orientation(my_car.physics.rotation)
         #car_rotation = Vec3(my_car.physics.rotation.pitch, my_car.physics.rotation.yaw, my_car.physics.rotation.roll)
         min_dist = 10000
+        # THIS MIGHT BE WRONG
         curvature = inverse_curvature(car_speed)
         target_location = Vec3(bot.field_info.goals[bot.team].location)
         #for i in bot.boost_pad_tracker.get_full_boosts():

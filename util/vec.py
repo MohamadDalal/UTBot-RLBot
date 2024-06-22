@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from typing import Union
 
 from rlbot.utils.structures.game_data_struct import Vector3
@@ -108,3 +109,10 @@ class Vec3:
         cos_ang = self.dot(ideal) / (self.length() * ideal.length())
         cos_ang = round(cos_ang, 10)
         return math.acos(cos_ang)
+    
+    def as_numpy(self):
+        return np.array([self.x, self.y, self.z])
+    
+    @classmethod
+    def from_numpy(cls, arr):
+        return cls(arr[0], arr[1], arr[2])

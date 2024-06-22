@@ -9,6 +9,8 @@ from strategy.attackStrategies import AttackStrategy
 from strategy.defenceStrategies import DefenceStrategy
 from strategy.kickoffStrategies import KickoffStrategy
 
+from time import perf_counter
+
 # First class that implements BaseAgent is loaded by RLBot
 
 class MyBot(BaseAgent):
@@ -31,8 +33,8 @@ class MyBot(BaseAgent):
     def choose_strategy(self, packet: GameTickPacket):
         if self.kickoff_strategy.isViable(packet):
             self.current_strategy = self.kickoff_strategy
-        elif self.defence_strategy.isViable(packet):
-        #elif True:
+        #elif self.defence_strategy.isViable(packet):
+        elif False:
             self.current_strategy = self.defence_strategy
         elif self.attack_strategy.isViable(packet):
             self.current_strategy = self.attack_strategy
@@ -43,6 +45,7 @@ class MyBot(BaseAgent):
         see the motion of the ball, etc. and return controls to drive your car.
         """
         #controls = SimpleControllerState()
+        start_time = perf_counter()
 
         # Keep our boost pad info updated with which pads are currently active
         self.boost_pad_tracker.update_boost_status(packet)
@@ -59,4 +62,6 @@ class MyBot(BaseAgent):
         controls = self.current_strategy.execute(packet, self)
         self.renderer.draw_line_3d(Vec3(0,0,0), self.field_info.goals[self.team].location, self.renderer.team_color(self.team))
 
+        end_time = perf_counter()
+        self.renderer.draw_string_2d(10, 40+20*(self.index+1), 1, 1, f"Time to execute{self.index}: {(end_time-start_time)/120:.2f} frames", self.renderer.white())
         return controls

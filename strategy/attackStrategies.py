@@ -5,29 +5,38 @@ from rlbot.utils.structures.ball_prediction_struct import BallPrediction
 from strategy.baseStrategy import BaseStrategy
 from util.vec import Vec3
 from util.orientation import Orientation, relative_location
-from strategy.attack_utils.targeting import chaseGoal
+from strategy.attack_utils.targeting import chaseGoal, chase_ball
 from util.ball_prediction_analysis import find_slice_at_time
 
 class AttackStrategy(BaseStrategy):
 
     def __init__(self, botIndex: int, bot: BaseAgent):
         super().__init__(botIndex, bot)
-        self.strategies = {"ShootAtNet": ShootAtNet(botIndex, bot)}
+        self.strategies = {"ChaseBall": ChaseBall(botIndex, bot),
+                           "ShootAtNet": ShootAtNet(botIndex, bot)}
+        self.current_strategy = self.strategies["ChaseBall"]
 
     def __str__(self):
-        return "AttackStrategy"
+        return str(self.current_strategy)
 
     def isViable(self, packet: GameTickPacket):
         return True
 
     def execute(self, packet: GameTickPacket, bot: BaseAgent):
         # Use ball prediction model to decide how to hit.
-        return self.strategies["ShootAtNet"].execute(packet, bot, bot.get_ball_prediction_struct())
+        for i in self.strategies:
+            if self.strategies[i].isViable(packet):
+                self.current_strategy = self.strategies[i]
+                break
+        return self.current_strategy.execute(packet, bot, bot.get_ball_prediction_struct())
 
 class ShootAtNet(BaseStrategy):
 
     def __init__(self, botIndex: int, bot: BaseAgent):
         super().__init__(botIndex, bot)
+
+    def __str__(self):
+        return "Attack: ShootAtNet"
 
     def isViable(self, packet: GameTickPacket):
         # Find a way to determine if the bot is in a position to shoot at the net:
@@ -35,7 +44,7 @@ class ShootAtNet(BaseStrategy):
         # - Can reach the ball with good speed (If large turns are needed, or drifting is needed, or there is boost for extra speed, etc.)
         # - Can reach the ball before the opponent (Very hard to evaluate due to opponent skill and intentions)
 
-        pass
+        True
 
     def execute(self, packet: GameTickPacket, bot: BaseAgent, ball_prediction: BallPrediction):
         # Use ball prediction model to decide how to hit.
@@ -79,3 +88,20 @@ class ShootAtNet(BaseStrategy):
         #bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"index: {bot.index}", bot.renderer.white())
 
         return controls
+    
+class ChaseBall(BaseStrategy):
+
+    def __init__(self, botIndex: int, bot: BaseAgent):
+        super().__init__(botIndex, bot)
+
+    def __str__(self):
+        return "Attack: ChaseBall"
+
+    def is_viable(self, packet: GameTickPacket):
+        return True
+    
+    def execute(self, packet: GameTickPacket, bot: BaseAgent, ball_prediction: BallPrediction):
+        controls = SimpleControllerState()
+        chase_ball(bot, packet, bot.field_info, controls, ball_prediction)
+        return controls
+

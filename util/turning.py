@@ -1,5 +1,6 @@
 from util.vec import Vec3
 from math import sin, pi
+import numpy as np
 
 # v is the magnitude of the velocity in the car's forward direction
 def curvature(v):
@@ -13,7 +14,8 @@ def curvature(v):
         return 0.003025 - 1.1e-6 * v
     if 1750.0 <= v < 2500.0:
         return 0.001800 - 4e-7 * v
-
+    if v >= 2500.0:
+        return max(0.001800 - 4e-7 * v, 0.0)
     return 0.0
 
 def inverse_curvature(k):
@@ -39,3 +41,13 @@ def desired_curvature(source: Vec3, target: Vec3, orientation: Vec3, epsilon=1e-
         return 2/dist
     radius = (dist*sin(angle))/sin(2*angle)
     return 1/radius
+
+def desired_curvature2(source: Vec3, target: Vec3, orientation: Vec3, epsilon=1e-5,
+                        car_length=118, car_width=84, length_offset=14, ball_radius=93):
+    turn_dir = np.sign(np.cross(orientation.as_numpy(), (target - source).as_numpy())[2])
+    car_size = max(car_length, car_width)/2
+    new_source = np.array([[np.cos(turn_dir*pi/2), -np.sin(turn_dir*pi/2), 0],
+                           [np.sin(turn_dir*pi/2), np.cos(turn_dir*pi/2), 0],
+                           [0, 0, 1]])@orientation.as_numpy()*car_size + orientation.as_numpy()*length_offset
+    new_target = target - (target - source).normalized()*ball_radius
+    return desired_curvature(Vec3.from_numpy(new_source), new_target, orientation, epsilon)

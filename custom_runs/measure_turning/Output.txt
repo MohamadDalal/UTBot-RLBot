@@ -1,0 +1,59 @@
+starting
+
+
+           ______ _     ______       _
+     10100 | ___ \ |    | ___ \     | |   00101
+    110011 | |_/ / |    | |_/ / ___ | |_  110011
+  00110110 |    /| |    | ___ \/ _ \| __| 01101100
+    010010 | |\ \| |____| |_/ / (_) | |_  010010
+     10010 \_| \_\_____/\____/ \___/ \__| 01001
+
+
+
+Version 1.68.0
+
+    Fixed 'continue and spawn' not resetting time and scores correctly - UltrawideGC + Virx
+    Added new mapps - Darxeal
+
+Trouble? Ask on Discord at https://discord.gg/5cNbXgG or report an issue at https://github.com/RLBot/RLBot/issues
+
+Launching RLBot binary with args ['C:\\Users\\moham\\AppData\\Local\\RLBotGUIX\\Python311\\Lib\\site-packages\\rlbot\\dll\\RLBot.exe', '23233', '127.0.0.1', '0']
+2024-06-22 15:06:20,427 INFO:rlbot[    setup_manager.py:445 - ensure_rlbot_gateway_started() ] Python started RLBot.exe with process id 5756 and port 23233
+Setting up soccer geometry for ball prediction...
+Ball Prediction Service Started
+RLBot.exe trying to connect to Rocket League on port 23233...
+2024-06-22 15:06:20,844 INFO:rlbot[    setup_manager.py:258 - launch_rocket_league_with_epic() ] Epic login trick seems to have failed!
+2024-06-22 15:06:20,860 INFO:rlbot[    setup_manager.py:245 - launch_rocket_league() ] Epic launch has failed, falling back to Steam!       
+2024-06-22 15:06:20,860 INFO:rlbot[    setup_manager.py:273 - launch_rocket_league_with_steam() ] Launching Rocket League with: ['c:\\program files (x86)\\steam\\steam.exe', '-applaunch', '252950', '-rlbot', 'RLBot_ControllerURL=127.0.0.1:23233', 'RLBot_PacketSendRate=240', '-nomovie']
+2024-06-22 15:06:20,860 INFO:rlbot[    setup_manager.py:214 -      connect_to_game() ] Loading interface...
+2024-06-22 15:06:21,068 INFO:rlbot[   game_interface.py:264 -    wait_until_loaded() ] DLL is initialized!
+2024-06-22 15:06:21,070 INFO:rlbot[   game_interface.py:338 -       load_interface() ] About to call StartTcp
+RLBot.exe Connected successfully to port 23233 !
+RLBot.exe listening for bot connections...
+RLBot.exe has begun listening for local socket clients on port 23234.
+21568 - C:\Users\moham\AppData\Local\RLBotGUIX\Python311\python.exe DLL client connected from local port 54608, pid is 21568 
+RLBot.exe accepted new bot connection from 54608
+21568 - C:\Users\moham\AppData\Local\RLBotGUIX\Python311\python.exe Sending ready message...
+2024-06-22 15:06:41,082 INFO:rlbot[   game_interface.py:277 - wait_until_ready_to_communicate() ] DLL is ready for comms!
+2024-06-22 15:06:41,330 INFO:rlbot[    setup_manager.py:616 -          start_match() ] Python attempting to start match.
+RLBot.exe accepted new bot connection from 54623
+2024-06-22 15:06:41,331 INFO:socket_man[   socket_manager.py:125 -      connect_and_run() ] Socket manager connected to port 23234 from port 54623!
+2024-06-22 15:06:41,333 INFO:  vpd[valid_packet_detector.py:22 - wait_until_valid_packet() ] Waiting for valid packet...
+RLBot.exe accepted new bot connection from 54624
+2024-06-22 15:06:41,334 INFO:socket_man[   socket_manager.py:125 -      connect_and_run() ] Socket manager connected to port 23234 from port 54624!
+Handling match start message which originated locally and which will apply locally. 
+Starting match with command open EuroStadium_P?game=TAGame.GameInfo_Soccar_TA?noreplay?GameTags=PlayerCount8,UnlimitedTime,UnlimitedBooster 
+Spawning bot 0 on team 0 with primary color rgb(8, 29, 165). Is rlbot? 1
+Game spawn detected at payload count 1
+Zeroing numCars because we just got a fresh game spawn.
+Clearing actor_id mappings!
+Setting up soccer geometry for ball prediction...
+Field spawn messages at payload count 1
+We have a player spawn message ready to go, sending!
+We had player spawn messages queued up when arriving at a pause menu, sent!
+Detected player spawn. Current network role: 0
+Got player spawn message for UTBot, actor id 38, command id 2
+Associating player id 38 with player index 0!
+2024-06-22 15:06:43,447 INFO:  vpd[valid_packet_detector.py:39 - wait_until_valid_packet() ] Packets are looking good, all spawn ids accounted for!
+2024-06-22 15:06:43,447 INFO:rlbot[    setup_manager.py:619 -          start_match() ] Match has started
+RLBot.exe got error while listening to bot / client: An existing connection was forcibly closed by the remote host

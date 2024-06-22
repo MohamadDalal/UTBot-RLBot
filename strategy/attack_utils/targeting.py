@@ -1,10 +1,14 @@
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket, FieldInfoPacket
+from rlbot.utils.structures.ball_prediction_struct import BallPrediction, Slice
 
 from util.drive import steer_toward_target
 from util.vec import Vec3
+from util.turning import desired_curvature, desired_curvature2, curvature
+from util.travel_time_analysis import simplest_calc_turning_time
 
 from math import pi, cos, sqrt
+from time import perf_counter
 
 
 LONG_OFFSET = 200
@@ -130,3 +134,111 @@ def turn_radius(current_orientation: Vec3, desired_orientation: Vec3, current_lo
 def max_speed_given_radius(v):
     # Calculate the max speed we can go in given the radius we need to traverse
     pass
+
+def chase_ball(bot: BaseAgent, packet: GameTickPacket, field_info: FieldInfoPacket, controls: SimpleControllerState, ball_prediction: BallPrediction,
+               max_iter=10, k_epsilon=1e-4):
+    # Plan:
+    # 1. Get steering from chase target
+    # 2. See if we can turn to target
+    # 3. If not then adjust steering (coast or drift)
+    # 4. Use a time estimator to see if we are chasing the correct ball
+    # 5. If not then recalculate steering
+    start_time = perf_counter()
+
+    ball_location = Vec3(packet.game_ball.physics.location)
+    #ball_velocity = Vec3(packet.game_ball.physics.velocity)
+    car_location = Vec3(packet.game_cars[bot.index].physics.location)
+    car_velocity = Vec3(packet.game_cars[bot.index].physics.velocity)
+    car_speed = car_velocity.length()
+    try:
+        car_velocity_direction = car_velocity.normalized()
+        car_velocity_direction_flat = car_velocity.flat().normalized()
+    except ZeroDivisionError:
+        print("Car velocity is zero")
+        controls.throttle = 1.0
+        return
+    time_to_ball = None
+    i = 0
+    slice_increment = 20
+    min_time_dif = len(ball_prediction.slices) - 1
+    #ball_slice = ball_prediction.slices[0]
+    # We need to adjust car speed to make the circle smaller
+
+    for i in range(0, len(ball_prediction.slices), slice_increment):
+        time_to_ball = simplest_calc_turning_time(car_speed, car_velocity_direction_flat, car_location.flat(), ball_location.flat(),
+                                                  car_length=150)
+        if time_to_ball is None:
+            #print("Time to ball is None at index: ", i)
+            continue
+        time_to_ball = time_to_ball[0] + time_to_ball[1]
+        min_time_dif = min(int(time_to_ball*60), min_time_dif)
+        ball_location = Vec3(ball_prediction.slices[i].physics.location)
+    for i in range(max(min_time_dif-slice_increment//2, 0), min(min_time_dif+slice_increment//2, len(ball_prediction.slices))):
+        time_to_ball = simplest_calc_turning_time(car_speed, car_velocity_direction_flat, car_location.flat(), ball_location.flat(),
+                                                  car_length=150)
+        if time_to_ball is None:
+            #print("Time to ball is None at index: ", i)
+            continue
+        time_to_ball = time_to_ball[0] + time_to_ball[1]
+        min_time_dif = min(int(time_to_ball*60), min_time_dif)
+        ball_location = Vec3(ball_prediction.slices[i].physics.location)
+    print("Selected index: ", min_time_dif)
+    ball_location = Vec3(ball_prediction.slices[min_time_dif].physics.location)
+    # Draw some things to help understand what the bot is thinking
+    bot.renderer.draw_line_3d(car_location, ball_location, bot.renderer.white())
+    bot.renderer.draw_string_3d(car_location, 1, 1, f'Speed: {car_velocity.length():.1f}', bot.renderer.white())
+    bot.renderer.draw_rect_3d(ball_location, 8, 8, True, bot.renderer.cyan(), centered=True)
+
+    #ball_location = ball_prediction.slices[int(time_to_ball*60)].physics.location
+    #ball_location = Vec3(ball_prediction.slices[0].physics.location)
+    inverse_k = curvature(car_speed)    # The maximum curvature we can turn. Bigger value means smaller circle.
+    desired_k = desired_curvature(car_location, ball_location, car_velocity_direction)
+    desired_k_boost = desired_curvature2(car_location, ball_location, car_velocity_direction) # The maximum curvature we want to be able to turn
+    #boost_k = curvature(min(2300,car_speed+500)) # The maximum curvature we can turn with boost
+    boost_k = k_epsilon*10
+
+    steering = steer_toward_target(packet.game_cars[bot.index], ball_location)
+    #print(car_speed, inverse_k, desired_k, boost_k, steering)
+    if steering == 1:
+        # Can't turn with current speed
+        if inverse_k < desired_k:
+            controls.throttle = -1
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"ChaseBall: Overturn", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"ChaseBall: Desired: {desired_k:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"ChaseBall: Current: {inverse_k:.6f}", bot.renderer.white())
+            #controls.throttle = 1
+            #controls.handbrake = 1
+        # Can turn but only with current speed
+        elif inverse_k < desired_k + k_epsilon:
+            controls.throttle = 0.02
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"ChaseBall: Perfect", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"ChaseBall: Desired: {desired_k:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"ChaseBall: Current: {inverse_k:.6f}", bot.renderer.white())
+            #controls.handbrake = 1
+        else:
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"ChaseBall: Underturn1", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"ChaseBall: Desired: {desired_k:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"ChaseBall: Current: {inverse_k:.6f}", bot.renderer.white())
+            controls.throttle = 1
+    else:
+        # We can turn we a lot of speed so use boost
+        if boost_k > desired_k_boost:
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"ChaseBall: Boost", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"ChaseBall: Desired: {desired_k_boost:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,70), 1, 1, f"ChaseBall: Old: {desired_k:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"ChaseBall: Boost: {boost_k:.6f}", bot.renderer.white())
+            controls.throttle = 1
+            controls.boost = True if not packet.game_cars[bot.index].is_super_sonic else False
+        # Can turn with higher speeds
+        elif inverse_k > desired_k:
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,50), 1, 1, f"ChaseBall: Underturn2", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,60), 1, 1, f"ChaseBall: Desired: {desired_k:.6f}", bot.renderer.white())
+            bot.renderer.draw_string_3d(car_location+Vec3(0,0,80), 1, 1, f"ChaseBall: Current: {inverse_k:.6f}", bot.renderer.white())
+            controls.throttle = 1
+    if packet.game_cars[bot.index].physics.rotation.pitch < -pi/2:
+        controls.jump = True
+    controls.steer = steering
+    end_time = perf_counter()
+    #print(f"Time to execute: {(end_time-start_time)/120:.2f} frames")
+    return
+
