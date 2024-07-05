@@ -23,7 +23,7 @@ def find_slice_at_time(ball_prediction: BallPrediction, game_time: float):
     return None
 
 
-def predict_future_goal(ball_prediction: BallPrediction, team: int = None):
+def predict_future_goal(ball_prediction: BallPrediction, team: int = None, max_time = 6):
     """
     Analyzes the ball prediction to see if the ball will enter one of the goals. Only works on standard arenas.
     Will return the first ball slice which appears to be inside the goal, or None if it does not enter a goal.
@@ -32,20 +32,27 @@ def predict_future_goal(ball_prediction: BallPrediction, team: int = None):
     """
     if team is None:
         return find_matching_slice(ball_prediction, 0, lambda s: abs(s.physics.location.y) >= GOAL_THRESHOLD,
-                                search_increment=20)
-    else:
-        return find_matching_slice(ball_prediction, 0, lambda s: s.physics.location.y >= GOAL_THRESHOLD * (2 * team - 1),
-                                search_increment=20)
+                                search_increment=20, end_index=int(max_time*60))
+    elif team == 0:
+        return find_matching_slice(ball_prediction, 0, lambda s: s.physics.location.y <= -GOAL_THRESHOLD,
+                                search_increment=20, end_index=int(max_time*60))
+    elif team == 1:
+        return find_matching_slice(ball_prediction, 0, lambda s: s.physics.location.y >= GOAL_THRESHOLD,
+                                search_increment=20, end_index=int(max_time*60))
 
 
 def find_matching_slice(ball_prediction: BallPrediction, start_index: int, predicate: Callable[[Slice], bool],
-                        search_increment=1):
+                        search_increment=1, end_index = None):
     """
     Tries to find the first slice in the ball prediction which satisfies the given predicate. For example,
     you could find the first slice below a certain height. Will skip ahead through the packet by search_increment
     for better efficiency, then backtrack to find the exact first slice.
     """
-    for coarse_index in range(start_index, ball_prediction.num_slices, search_increment):
+    if end_index is None:
+        end_index = ball_prediction.num_slices
+    else:
+        end_index = max(min(ball_prediction.num_slices, end_index), start_index)
+    for coarse_index in range(start_index, end_index, search_increment):
         if predicate(ball_prediction.slices[coarse_index]):
             for j in range(max(start_index, coarse_index - search_increment), coarse_index):
                 ball_slice = ball_prediction.slices[j]

@@ -33,8 +33,8 @@ class MyBot(BaseAgent):
     def choose_strategy(self, packet: GameTickPacket):
         if self.kickoff_strategy.isViable(packet):
             self.current_strategy = self.kickoff_strategy
-        #elif self.defence_strategy.isViable(packet):
-        elif False:
+        elif self.defence_strategy.isViable(packet):
+        #elif False:
             self.current_strategy = self.defence_strategy
         elif self.attack_strategy.isViable(packet):
             self.current_strategy = self.attack_strategy

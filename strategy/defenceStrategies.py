@@ -33,6 +33,8 @@ def calc_time_to_ball(car_location: Vec3, car_velocity: Vec3, ball_location: Vec
             break
     return time_to_ball
 
+
+
 class DefenceStrategy(BaseStrategy):
 
     def __init__(self, botIndex: int, bot: BaseAgent):
@@ -52,19 +54,21 @@ class DefenceStrategy(BaseStrategy):
         opponent_location = Vec3(packet.game_cars[(self.botIndex + 1) % 2].physics.location)
         opponent_velocity = Vec3(packet.game_cars[(self.botIndex + 1) % 2].physics.velocity)
         ball_prediction = self.bot.get_ball_prediction_struct()
-        boost_empty =  packet.game_cars[self.botIndex].boost < 60
+        boost_empty =  packet.game_cars[self.botIndex].boost < 50
         my_time_to_ball = calc_time_to_ball(car_location, car_velocity, ball_location, ball_velocity, ball_prediction)
         opp_time_to_ball = calc_time_to_ball(opponent_location, opponent_velocity, ball_location, ball_velocity, ball_prediction)
+        #my_time_to_ball = calc_time_to_ball(car_location, car_velocity, ball_location, ball_velocity, None)
+        #opp_time_to_ball = calc_time_to_ball(opponent_location, opponent_velocity, ball_location, ball_velocity, None)
         can_make_ball = my_time_to_ball < opp_time_to_ball
-        self.bot.renderer.draw_string_2d(10, 80+20*(self.botIndex+1), 1, 1, f"Time to ball {self.botIndex}: {my_time_to_ball}", self.bot.renderer.white())
         # TODO: defend if ball is heading to own net
-        is_goal = predict_future_goal(ball_prediction, self.bot.team) is not None
+        is_goal = predict_future_goal(ball_prediction, self.bot.team, max_time=3) is not None
         # TODO: Implement a way to know if opponent is dribbling or shooting. So we rush if they are dribbling.
         #       This is based on 3 facts:
         #       - Opponent last hit the ball
         #       - Speed of ball is low despite it being hit recently
         #       - Opponent is very close to ball (within 500 units)
-        return boost_empty and not can_make_ball or is_goal
+        self.bot.renderer.draw_string_2d(10, 80+20*(self.botIndex+1), 1, 1, f"Time to ball {self.botIndex}: {my_time_to_ball:.3f}, {opp_time_to_ball:.3f}, {boost_empty}, {not can_make_ball}, {is_goal}", self.bot.renderer.white())
+        return (boost_empty and (not can_make_ball)) or is_goal
 
     def execute(self, packet: GameTickPacket, bot: BaseAgent):
         #print("Executing DefenceStrategy")
@@ -91,9 +95,10 @@ class GetBoost(BaseStrategy):
         # - There is not a high chance of opponent shooting at net (advanced and optional)
         is_goal = predict_future_goal(ball_prediction, self.bot.team)
         if is_goal is None:
-            return packet.game_cars[self.botIndex].boost < 80
+            return packet.game_cars[self.botIndex].boost < 50
         else:
-            return packet.game_cars[self.botIndex].boost < 80
+            return False
+            #return packet.game_cars[self.botIndex].boost < 50
         
 
     def execute(self, packet: GameTickPacket, bot: BaseAgent, ball_prediction: BallPrediction):
@@ -143,7 +148,7 @@ class DefendGoal(BaseStrategy):
         return "Defence: DefendGoal"
     
     def isViable(self, packet: GameTickPacket, ball_prediction: BallPrediction):
-        is_goal = predict_future_goal(ball_prediction, self.bot.team)
+        is_goal = predict_future_goal(ball_prediction, self.bot.team, max_time=3)
         # is_goal is a ball slice which has a physics packet and the time in game seconds it happens
         # TODO: Make it compare seconds with current game seconds to see if goal happens within a certain time
         return is_goal is not None
